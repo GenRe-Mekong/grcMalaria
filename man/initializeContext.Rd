@@ -10,7 +10,7 @@ initializeContext(
   outDir = "out",
   minSnpTypability = 0.8,
   minSampleTypability = 0.75,
-  maxImputedProportion = 0.2,
+  maxImputedProportion = (1 - minSampleTypability),
   clearCacheData = FALSE
 )
 }

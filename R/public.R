@@ -160,7 +160,7 @@ getGrcFeatureNames <- function (grc, category) {
 initializeContext <- function (grc, dir=".", outDir="out",
                                minSnpTypability=0.8,
                                minSampleTypability=0.75,
-                               maxImputedProportion=0.2,
+                               maxImputedProportion=(1-minSampleTypability),
                                clearCacheData=FALSE) {
   options(scipen=10)
   options(stringsAsFactors=FALSE)

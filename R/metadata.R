@@ -30,8 +30,8 @@ meta.getValueCounts <- function (ctx, sampleMeta, countableFeatureNames, params=
 # Returns a tabulated array of alleles sample counts in a column, sorted by decreasing sample count
 # The names of the elements are the allele labels. Missing and <NA> are discarded.
 #
-meta.getColumnValueCounts <- function (ctx, sampleMeta, columnName) {	; print("meta.getColumnValueCounts"); print(columnName)
-    sampleNames <- rownames(sampleMeta)					; print(length(sampleNames))
+meta.getColumnValueCounts <- function (ctx, sampleMeta, columnName) {	#; print("meta.getColumnValueCounts"); print(columnName)
+    sampleNames <- rownames(sampleMeta)					#; print(length(sampleNames))
     columnGenos <- ctx$rootCtx$alleleGenoData$columnGenoData[[columnName]]
     sampleGenos <- columnGenos$sampleGenotypes[sampleNames]
     
