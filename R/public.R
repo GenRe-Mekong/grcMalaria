@@ -818,35 +818,42 @@ mapBarcodeFrequencies <- function (ctx, sampleSet,
 #' @param minIdentity The minimal similarity level set for a pair of samples to be in a cluster. For example, "0.95" corresponds to at least 95 percent genetic barcode similarity.
 #'                    Multiple similarity levels can be set at once, as in the example above, by putting number inside c() separated by , the default is 1.
 #' @param impute To use imputed or filtered data. The default is TRUE.
-#' @param clusteringMethod The clustering method. Two methods are available: "allNeighbours" and "louvain". The default is "louvain".
+#' @param clusteringMethod The clustering method. Methods available: "allNeighbours", "leiden" and "louvain". The default is "louvain".
 #'                        The "allNeighbours" method clusters samples together that are above the set "minIdentity" threshold.
 #'                        This method is less informative at low similarity levels, because each sample will be assigned to a single cluster.
-#'                        The "louvain" method is the preferred method. Also known as Louvain Community-based clustering,
-#'                        this method uses an algorithm to identify clusters within a network that are strongly connected to each other, and more weakly connected to other clusters.
-#'                        This method is superior to "allNeighbours", particularly in sample sets that have low genetic similarity.
+#'                        The "louvain" and "leiden" methods are preferred. They use an algorithm to identify clusters within a network that 
+#'                        are strongly connected to each other, and more weakly connected to other clusters.
 #' @param minClusterSize To avoid creating very small clusters, one can set a minimum cluster size. The default is 10 samples.
+#' @param resolution A tuning parameter for the "leiden" and "louvain" methods. 
+#'                        Values are between 0 and 1; lowering the value produces larger, "looser" clusters. Default is 1. 
+#' @param objectiveFunction A parameter for the "leiden" method only. Possible values: "CPM" (Constant Potts Model) or "modularity". Default is "CPM".
+#' @param beta A tuning parameter for the "leiden" method only. Affects the randomness in the algorithm. Default is 0.01.
 #'
 #' @export
 #'
 #' @examples \dontrun{
 #' ## Find clusters of similar genetic background ##
 #'    findClusters(ctx, sampleSet="EBKK", clusterSet = "GMS",
-#'                 minIdentity = c(0.95, 0.80), impute=TRUE,
-#'                 clusteringMethod = "louvain", minClusterSize = 2)
+#'                 minIdentity = c(0.95, 0.80), impute = TRUE,
+#'                 clusteringMethod = "louvain")
 #'}
 #
 findClusters <- function (ctx, sampleSet, clusterSet,
                           minIdentity=1.0, impute=TRUE,
-                          clusteringMethod="louvain",
-                          minClusterSize=10) {
+                          clusteringMethod="louvain", minClusterSize=10, 
+                          resolution = 1, objectiveFunction = "CPM", beta = 0.01) {
   # Construct a list of arguments so we can use the params.getArgParameter utility function
   args <- list(clusterSet=clusterSet, minIdentity=minIdentity, impute=impute, clusteringMethod=clusteringMethod, minClusterSize=minClusterSize)
   p <- new.env ()
   p$cluster.clusterSet.name <- param.getArgParameter (args, "clusterSet")
   p$cluster.identity.min    <- param.getArgParameter (args, "minIdentity",      type="numeric", multiValue=TRUE, defaultValue=1.0)
   p$cluster.impute          <- param.getArgParameter (args, "impute",           type="logical", defaultValue=TRUE)
-  p$cluster.method          <- param.getArgParameter (args, "clusteringMethod", defaultValue="louvain", validValues=c("louvain","allNeighbours"))
   p$cluster.minSize         <- param.getArgParameter (args, "minClusterSize",   type="integer", defaultValue=10)
+  p$cluster.method          <- param.getArgParameter (args, "clusteringMethod", defaultValue="louvain", validValues=c("louvain","leiden","allNeighbours"))
+  p$cluster.resolution      <- param.getArgParameter (args, "resolution",       type="numeric", defaultValue=1.0)
+  p$cluster.objFunction     <- param.getArgParameter (args, "objectiveFunction", defaultValue="CPM", validValues=c("CPM","modularity"))
+  p$cluster.beta            <- param.getArgParameter (args, "beta",             type="numeric", defaultValue=0.01)
+  
   cluster.findClusters (ctx, sampleSetName=sampleSet, params=p)
 }
 

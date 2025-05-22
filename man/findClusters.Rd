@@ -11,7 +11,10 @@ findClusters(
   minIdentity = 1,
   impute = TRUE,
   clusteringMethod = "louvain",
-  minClusterSize = 10
+  minClusterSize = 10,
+  resolution = 1,
+  objectiveFunction = "CPM",
+  beta = 0.01
 )
 }
 \arguments{
@@ -26,14 +29,20 @@ Multiple similarity levels can be set at once, as in the example above, by putti
 
 \item{impute}{To use imputed or filtered data. The default is TRUE.}
 
-\item{clusteringMethod}{The clustering method. Two methods are available: "allNeighbours" and "louvain". The default is "louvain".
+\item{clusteringMethod}{The clustering method. Methods available: "allNeighbours", "leiden" and "louvain". The default is "louvain".
 The "allNeighbours" method clusters samples together that are above the set "minIdentity" threshold.
 This method is less informative at low similarity levels, because each sample will be assigned to a single cluster.
-The "louvain" method is the preferred method. Also known as Louvain Community-based clustering,
-this method uses an algorithm to identify clusters within a network that are strongly connected to each other, and more weakly connected to other clusters.
-This method is superior to "allNeighbours", particularly in sample sets that have low genetic similarity.}
+The "louvain" and "leiden" methods are preferred. They use an algorithm to identify clusters within a network that 
+are strongly connected to each other, and more weakly connected to other clusters.}
 
 \item{minClusterSize}{To avoid creating very small clusters, one can set a minimum cluster size. The default is 10 samples.}
+
+\item{resolution}{A tuning parameter for the "leiden" and "louvain" methods. 
+Values are between 0 and 1; lowering the value produces larger, "looser" clusters. Default is 1.}
+
+\item{objectiveFunction}{A parameter for the "leiden" method only. Possible values: "CPM" (Constant Potts Model) or "modularity". Default is "CPM".}
+
+\item{beta}{A tuning parameter for the "leiden" method only. Affects the randomness in the algorithm. Default is 0.01.}
 }
 \description{
 In order to plot maps of cluster prevalence and cluster sharing, first clusters of similar genetic background need to be assigned.
@@ -45,7 +54,7 @@ Functions providing cluster analyses include: mapClusterSharing(), and mapCluste
 \dontrun{
 ## Find clusters of similar genetic background ##
    findClusters(ctx, sampleSet="EBKK", clusterSet = "GMS",
-                minIdentity = c(0.95, 0.80), impute=TRUE,
-                clusteringMethod = "louvain", minClusterSize = 2)
+                minIdentity = c(0.95, 0.80), impute = TRUE,
+                clusteringMethod = "louvain")
 }
 }

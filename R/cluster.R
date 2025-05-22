@@ -200,7 +200,7 @@ cluster.getClusterStatsText <- function(clusterStats, clustersName) {
 ###############################################################################
 # Graph-based Clustering
 ###############################################################################
-cluster.graphCommunityMethods <- c("louvain")
+cluster.graphCommunityMethods <- c("louvain", "leiden")
 cluster.graphMethods          <- c("allNeighbours", cluster.graphCommunityMethods)
 
 cluster.findClustersFromGraph <- function (ctx, sampleSetName, clusterSetName, method, minIdentity, useImputation, params) {
@@ -301,7 +301,20 @@ cluster.findAllNeighbourConnectedNodes <- function (gr, curr, nodes) {
 # Clustering Method: Community Analysis.
 #
 cluster.findGraphCommunities <- function (gr, method, params) {
-    partition <- igraph::cluster_louvain(gr, weights=igraph::E(gr)$weight) 
+
+    if (method == "louvain") {
+        resolution <- param.getParam ("cluster.resolution", params)
+        partition <- igraph::cluster_louvain(gr, weights=igraph::E(gr)$weight, resolution_parameter=resolution) 
+
+    } else if (method == "leiden") {
+        objFunction <- param.getParam ("cluster.objFunction", params)
+        resolution  <- param.getParam ("cluster.resolution", params)
+        beta        <- param.getParam ("cluster.beta", params)
+        partition <- igraph::cluster_leiden(gr, objective_function=objFunction, weights=igraph::E(gr)$weight, resolution_parameter=resolution, beta=beta) 
+
+    } else {
+        stop (paste("Invalid method specified in parameter 'cluster.method':", method))
+    }
     nodeComms <- partition$membership
     commIds <- sort(as.integer(unique(nodeComms)))
     sampleNames <- names(igraph::V(gr))
