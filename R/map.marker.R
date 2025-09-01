@@ -2,26 +2,19 @@
 # Map Aggregated Measure Analysis
 ###############################################################################
 #
-markerMap.getDiversityMeasures <- function() {
-    c("maxHaploFreq",
-      "haploHet",
-      "meanSnpHet",
-      "medianDistance")
-}
-#
-markerMap.executeMap <- function(map) {
+markerMap.executeMap <- function(map) {						#; print("markerMap.executeMap")
     mapMaster   <- map$master
-    mapType     <- mapMaster$type
-    measureName <- map$measureName
-    interval    <- map$interval				#; print(interval)
+    mapType     <- mapMaster$type						#; print(paste("mapType",mapType))
+    measureName <- map$measureName						#; print(paste("measureName",measureName))
+    interval    <- map$interval							#; print(interval)
     #
-    datasetName <- map$datasetName
+    datasetName <- map$datasetName						#; print(paste("datasetName",datasetName))
     sampleSet   <- mapMaster$sampleSet
     userCtx     <- mapMaster$userCtx
     params      <- mapMaster$params
     config      <- context.getConfig(userCtx)
     #
-    sampleMeta <- context.getMeta (map$mapCtx, datasetName) 
+    sampleMeta <- context.getMeta (map$mapCtx, datasetName)			#; print(paste("markerMap.executeMap", nrow(sampleMeta)))
     if (nrow(sampleMeta)==0) {
         print(paste("No samples found - skipping interval", interval$name))
         return()
@@ -199,23 +192,21 @@ markerMap.getAggUnitMarkerSizes <- function(aggUnitData, params) {
 # Estimation of marker measures (drug resistance and diversity)
 ################################################################################
 #
-markerMap.resolveMeasureNames <- function(ctx, mapType, params) {
-    measureNames <- param.getParam ("analysis.measures", params)		#; print (measureNames)
-    #
-    # Get the admin division values from the first sample of this unit (assuming the values are the same for all)
-    #
-    config <- context.getConfig(ctx)						#; print(names(config))
+markerMap.resolveMeasureNames <- function(ctx, mapType, userMeasureNames) {
+    measureNames <- userMeasureNames
     if (mapType=="diversity") {
         if ("ALL" %in% measureNames) {
-            measureNames <- markerMap.getDiversityMeasures()
+            measureNames <- diversity.getDiversityMeasures()				#; print (measureNames)
         }
     } else if (mapType=="drug") {
         if ("ALL" %in% measureNames) {
-            measureNames <- setup.getFeatureNames(config$drugPredictionFeatures)
+            config <- context.getConfig(ctx)						#; print(names(config))
+            measureNames <- setup.getFeatureNames(config$drugPredictionFeatures)	#; print (measureNames)
         }
     } else if (mapType=="mutation") {
         if ("ALL" %in% measureNames) {
-            measureNames <- setup.getFeatureNames(config$drugMutationFeatures)	#; print (measureNames)
+            config <- context.getConfig(ctx)						#; print(names(config))
+            measureNames <- setup.getFeatureNames(config$drugMutationFeatures)		#; print (measureNames)
         }
     }
     measureNames
@@ -241,8 +232,10 @@ markerMap.estimateMeasures <- function(ctx, datasetName, aggLevel, aggUnitData, 
         aggSamples <- rownames(aggSamplesMeta)
         
         # Get the admin division values from the first sample of this unit (assuming the values are the same for all)
+        suffix <- ""
         if (mapType=="diversity") {
-            cValues <- markerMap.estimateDiversityMeasures (ctx, datasetName, aggSamples, barcodeData, measureNames)
+            cValues <- diversity.estimateDiversityMeasures (ctx, aggSamples, measureNames)
+            suffix <- paste0("-", measureNames)
         } else if (mapType=="drug") {
             cValues <- meta.getResistancePrevalence (ctx, aggSamplesMeta, measureNames, params)
         } else if (mapType=="mutation") {
@@ -258,48 +251,8 @@ markerMap.estimateMeasures <- function(ctx, datasetName, aggLevel, aggUnitData, 
     }
 
     # Write out the aggregation unit data to file
-    aggDataFilename  <- paste(dataFolder, "/AggregatedData-", sampleSetName, "-", aggLevel, ".tab", sep="")
+    aggDataFilename  <- paste0(dataFolder, "/AggregatedData-", sampleSetName, "-", aggLevel, suffix, ".tab")
     utils::write.table(aggUnitData, file=aggDataFilename, sep="\t", quote=FALSE, row.names=FALSE)
 
     aggUnitData
-}
-#
-# Diversity measure estimates from genetic barcodes.
-# Note that this is executed over imputed barcodes, and therefore there is not missingness or het genotypes in the barcodes.
-#
-markerMap.estimateDiversityMeasures <- function (ctx, datasetName, sampleNames, barcodeData, measureNames) {
-    barcodes <- ctx$rootCtx$imputed$barcodes
-    barcodes <- barcodes[sampleNames]
-    sampleNames <- names(barcodes)
-    sampleCount <- length(sampleNames)
-    
-    result <- c()
-    for (mIdx in 1:length(measureNames)) {
-        measureName <- measureNames[mIdx]
-        if (measureName == "maxHaploFreq") {
-            haploCounts <- table(barcodes)
-            maxHaploCounts <- max(haploCounts)
-            value <- maxHaploCounts/sampleCount
-        
-        } else if (measureName == "haploHet") {
-            value <- pegas::heterozygosity(barcodes)
-            
-        } else if (measureName == "meanSnpHet") {
-            barcodeGenoTable <- ctx$rootCtx$imputed$barcodeGenoTable
-            barcodeGenoTable <- barcodeGenoTable[sampleNames,]
-            hets <- apply(barcodeGenoTable, 2, pegas::heterozygosity)
-            value <- mean(hets)
-            
-        } else if (measureName == "medianDistance") {
-            distData <- ctx$rootCtx$imputed$distData
-            mat <- as.matrix(distData[sampleNames,sampleNames])
-            mat[lower.tri(mat,diag=TRUE)] <- NA
-	    value <- stats::median(mat, na.rm=TRUE)
-	    
-        } else {
-            stop(paste("Invalid diversity measure:", measureNames))
-        }
-        result <- c(result, value)
-    }
-    result
 }

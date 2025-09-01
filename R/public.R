@@ -599,7 +599,7 @@ mapAlleleProportions <- function (ctx, sampleSet, timePeriods=NULL,
 #' Map genetic Diversity
 #'
 #' This creates maps of expected heterozygosity or genetic diversity for different administrative divisions.
-#' Genetic diversity can be calculated using four different measures: "maxHaploFreq","haploHet", "meanSnpHet", and "medianDistance".
+#' Genetic diversity can be calculated using four different measures: "maxBarcodeFreq","barcodeHet", "meanVariantHet", and "medianDistance".
 #' Calculations are based on the 'genetic barcode', which consists of 101 SNPs determined for each sample. These SNPs are distributed across all nuclear chromosomes.
 #' SNP positions were chosen based on their ability to differentiate populations and their power to recapitulate genetic distance.
 #' If multiple measures are specified, then a map will be created for each measure.
@@ -611,21 +611,28 @@ mapAlleleProportions <- function (ctx, sampleSet, timePeriods=NULL,
 #'                    Why use time-intervals parameter:
 #'                    It will produce maps with consistent geographical boundaries
 #'                    Users can slice up the dataset in any specified time period
-#' @param measures This can be "ALL", or any vector containing one or more of c("maxHaploFreq","haploHet", "meanSnpHet","medianDistance").
-#'                 The method "maxHaploFreq" is a measure of loss of diversity. This measure gives the proportion of samples carrying the most common haplotype (defined as samples with identical barcodes).
-#'                 The output ranges from 0-1, with a low value corresponding to a low proportion of samples with the most common haplotype, and a high value corresponding to a
-#'                 high proportion of samples with the most common haplotype.
-#'                 The method "haploHet" is a measure of heterozygosity based on the complete barcode.
-#'                 This measure gives the probability of two randomly selected samples carrying a different barcode, and is useful to detect large changes in a population structure.
-#'                 The output ranges from 0-1, with a low value corresponding to low diversity (low probability of carrying a different barcode), while a high value corresponds to high diversity (high probability of a different barcode).
-#'                 The method "meanSnpHet" is also known as the expected heterozygosity or gene diversity of a locus.
-#'                 For each barcode SNP, expected heterozygosity is calculated using: HE=(n/(n-1))(1-sum(pi^2)),
-#'                 where n = the number of samples and pi = the allele frequency of the ith SNP in the barcode.
-#'                 The final value shows the mean of heterozygosity across all the loci.
-#'                 This measure is able to detect smaller changes in a population structure, and stable as it uses the mean of all SNPs.
-#'                 The output ranges from 0-1, with a low value corresponding to low diversity (low probability of a different allele), and a high value corresponding to high diversity (high probability of a different allele).
-#'                 The method "medianDistance" is a measure that gives the median genetic distance in a assessed group.
-#'                 The is calculated using pairwise genetic distance as the proportion of SNPs differing between two samples. Then taking the median of these in the group of samples of interest
+#' @param measures This can be "ALL", or any vector containing one or more of c("maxBarcodeFreq","barcodeHet", "meanVariantHet", "meanHetCallsProp", "medianDistance").
+#'                 The method "maxBarcodeFreq" is a measure of loss of diversity. This measure gives the proportion of samples carrying the most common 
+#'                 barcode haplotype (defined as samples with identical barcodes). The output ranges from 0-1, with a low value corresponding to a low 
+#'                 proportion of samples with the most common haplotype (high diversity), and a high value corresponding to a high proportion of samples 
+#'                 with the most same haplotype (low diversity).
+#'                 The method "barcodeHet" is a measure of heterozygosity based on the complete barcode. This measure is the probability of two randomly 
+#'                 selected samples carrying different barcodes, and is useful to detect clonal expansions.
+#'                 The output ranges from 0-1, with a low value corresponding to low diversity (low probability of carrying a different barcode), 
+#'                 while a high value corresponds to high diversity (high probability of a different barcode).
+#'                 The method "meanVariantHet" is the average of the expected heterozygosity of the individual variants in a barcode.  For each barcode SNP, 
+#'                 the expected heterozygosity is calculated using: HE=(n/(n-1))(1-sum(pi^2)), where n = the number of samples and pi = the allele frequency 
+#'                 of the ith allele at this SNP. The final diversity estimate is the mean of SNP heterozygosity across all barcoding SNPs.
+#'                 The output ranges from 0-1, with a low value corresponding to low diversity (low probability of a different allele), and a high value 
+#'                 corresponding to high diversity (high probability of a different allele).
+#'                 The method "meanHetCallsProp" is the mean of the proportion of heterozygous calls at each of the barcoding SNPs. For each barcode SNP, 
+#'                 we count how many samples carry more than one allele at this SNP, and estimate the proportion, ignoring those samples that have a 
+#'                 missing genotype. The final diversity estimate is the mean these proportions, across all barcoding SNPs.
+#'                 The output ranges from 0-1, with a low value corresponding to low diversity, and a high value corresponding to high diversity.
+#'                 The method "medianDistance" is a measure that gives the median genetic distance in geographical unit.
+#'                 It is calculated using pairwise genetic distance as the proportion of SNPs differing between two samples, then taking the median 
+#'                 of these in the group of samples of interest
+#'                 The method "meanDistance" is a measure that gives the mean genetic distance in geographical unit, with the same method as medianDistance.
 #' @param aggregate The administrative level at which we aggregate. Separate maps are created for each administrative level.
 #' @param minAggregateCount The minimum count of aggregated samples. To avoid estimating on very small samples, one can set a minimum count of samples, below which the marker is not shown.
 #' @param markerSize Allows adjustment of the size of markers on the map. If only one value is passed, all markers will be of that size; if two values are passed, they will be used as the min and max size of the marker, whose size will reflect the number of samples.
@@ -671,11 +678,16 @@ mapDiversity <- function (ctx, sampleSet, timePeriods=NULL,
                           ...) {
 
   task <- "map/diversity"
-  params <- param.makeParameterList (ctx, task,
-                                     timePeriods=timePeriods, measures=measures, aggregate=aggregate, minAggregateCount=minAggregateCount,
+  #
+  # If measures="ALL", we have to make separate calls, because the different measures use different datasets
+  measures <- markerMap.resolveMeasureNames (ctx, "diversity", measures)
+  for (measure in measures) {
+      params <- param.makeParameterList (ctx, task,
+                                     timePeriods=timePeriods, measures=measure, aggregate=aggregate, minAggregateCount=minAggregateCount,
                                      markerSize=markerSize, markerFontSize=markerFontSize, markerColours=markerColours, showNames=showNames, nameFontSize=nameFontSize,
                                      ...)
-  execute.executeOnSampleSet (userCtx=ctx, sampleSetName=sampleSet, task=task, params=params)
+      execute.executeOnSampleSet (userCtx=ctx, sampleSetName=sampleSet, task=task, params=params)
+  }
 }
 
 

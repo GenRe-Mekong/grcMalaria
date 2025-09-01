@@ -204,7 +204,11 @@ map.createMapMaster <- function (userCtx, sampleSetName, mapType, params) {		#; 
     #
     if (mapType %in% c("drug", "mutation", "alleleProp", "location")) {
         mapMaster$datasetNames <- "unfiltered"
-    } else if (mapType  %in% c("diversity", "connect", "barcodeFrequency", "clusterSharing", "clusterPrevalence")) {
+    } else if (mapType == "diversity") {
+        # Diversity plots are done one at a time, so param analysis.measures contains a single value
+        measure <- param.getParam ("analysis.measures", params)
+        mapMaster$datasetNames <- diversity.getDatasetForMeasure (measure)
+    } else if (mapType  %in% c("connect", "barcodeFrequency", "clusterSharing", "clusterPrevalence")) {
         mapMaster$datasetNames <- "imputed"
     } else if (mapType == "sampleCount") {
         mapMaster$datasetNames <- c("unfiltered","filtered")
@@ -231,9 +235,11 @@ map.createMapMaster <- function (userCtx, sampleSetName, mapType, params) {		#; 
     # Check the measures specified are valid; and if they are, ensure we have colour palettes for these measures, creating them if necessary.
     # For a given measure, all plots for this sample set use the same palette, otherwise the viewer will be confused when looking at multiple maps.
     #
+    userMeasureNames <- param.getParam ("analysis.measures", params)
+    #
     if (mapType %in% c("drug", "mutation", "diversity")) {
-        measureNames <- markerMap.resolveMeasureNames (userCtx, mapType, params)	#; print(measureNames)
-
+        measureNames <- markerMap.resolveMeasureNames (userCtx, mapType, userMeasureNames)		#; print (measureNames)
+        
     } else if (mapType=="alleleProp") {
         measureNames <- pieMap.resolveMeasureNames (userCtx, sampleSetName, params)
         
@@ -485,7 +491,11 @@ map.getAggregationUnitData <- function(plotCtx, datasetName, aggLevel, analysisN
     aggUnitData$SampleCount <- as.integer(as.character(aggUnitData$SampleCount))
 
     # Write out the aggregation unit data to file
-    aggDataFilename  <- paste(dataFolder, "/AggregationUnits-", analysisName, "-", aggLevel, ".tab", sep="")
+    suffix <- ""
+    if (mapType == "diversity") {
+        suffix <- paste0("-", param.getParam ("analysis.measures", params))
+    }
+    aggDataFilename  <- paste(dataFolder, "/AggregationUnits-", analysisName, "-", aggLevel, suffix, ".tab", sep="")
     utils::write.table(aggUnitData, file=aggDataFilename, sep="\t", quote=FALSE, row.names=FALSE)
 
     aggUnitData

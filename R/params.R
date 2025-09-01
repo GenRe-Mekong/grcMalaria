@@ -216,7 +216,7 @@ param.addMapParameters <- function (ctx, p, args, taskMethod, ...) {
 
     } else if (taskMethod == "diversity") {
         p$analysis.measures <- param.getArgParameter (args, "measures", type="character", multiValue=TRUE, defaultValue="ALL", 
-                                                      validValues=c("ALL",markerMap.getDiversityMeasures()))
+                                                      validValues=c("ALL",diversity.getDiversityMeasures()))
         p$map.markerColours <- param.getArgParameter (args, "markerColours", multiValue=TRUE, defaultValue="red3")
         
     } else if (taskMethod == "connect") {

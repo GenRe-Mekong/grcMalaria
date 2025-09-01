@@ -48,7 +48,7 @@ ui.makeSingleMap <- function (ctx, sampleSet, type,
         
     } else if (type=="diversity") {
         params$analysis.measures <- param.getArgParameter (mArg, "measure", type="character", 
-                                                           validValues=c("ALL", markerMap.getDiversityMeasures()))
+                                                           validValues=c("ALL", diversity.getDiversityMeasures()))
         
     }
 
