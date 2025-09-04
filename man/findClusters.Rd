@@ -12,7 +12,7 @@ findClusters(
   impute = TRUE,
   clusteringMethod = "louvain",
   minClusterSize = 10,
-  resolution = 1,
+  resolution = 0.85,
   objectiveFunction = "CPM",
   beta = 0.01
 )
@@ -37,8 +37,8 @@ are strongly connected to each other, and more weakly connected to other cluster
 
 \item{minClusterSize}{To avoid creating very small clusters, one can set a minimum cluster size. The default is 10 samples.}
 
-\item{resolution}{A tuning parameter for the "leiden" and "louvain" methods. 
-Values are between 0 and 1; lowering the value produces larger, "looser" clusters. Default is 1.}
+\item{resolution}{A tuning parameter for the "leiden" and "louvain" methods.It is recommended to try out different values to find the desired level of aggregation.
+Values are between 0 and 1; lowering the value produces larger, "looser" clusters. Default is 0.85.}
 
 \item{objectiveFunction}{A parameter for the "leiden" method only. Possible values: "CPM" (Constant Potts Model) or "modularity". Default is "CPM".}
 

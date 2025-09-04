@@ -32,7 +32,8 @@ cluster.findClusters <- function (userCtx, sampleSetName, params) {
         # TODO - At the moment, only graph-based clustering methods are implemented, but this may be extended later.
         clustersData <- NULL
         if (method %in% cluster.graphMethods) {
-            clustersData <- cluster.findClustersFromGraph (ctx, sampleSetName, clusterSetName, method, minIdentity, useImputation, params)
+            clustersData <- cluster.findClustersFromGraph (ctx, sampleSetName, clusterSetName, method, 
+                                                           minIdentity, useImputation, params)	#; print(clustersData)
         } else {
             stop (paste("Invalid method specified in parameter 'cluster.method':", method))
         }
@@ -207,13 +208,13 @@ cluster.findClustersFromGraph <- function (ctx, sampleSetName, clusterSetName, m
     config <- context.getConfig(ctx)
     
     # Get a table of pairwise distance/identity values for all pairs of samples that meet the threshold
-    distData  <- context.getDistanceMatrix (ctx, sampleSetName, useImputation)	#; print(head(distData))#; print(nrow(distData))
+    distData  <- context.getDistanceMatrix (ctx, sampleSetName, useImputation)	#; print(head(distData)); print(nrow(distData))
 
     edgeData <- clusterGraph.getPairwiseIdentityData (distData, minIdentity, params)	#; print(head(edgeData))
-    edgeData$weight <- (edgeData$Identity * edgeData$Identity)			#; print(nrow(edgeData))
+    edgeData$weight <- (edgeData$Identity * edgeData$Identity)				#; print(nrow(edgeData))
     
     nodeNames <- unique(c(as.character(edgeData$Sample1),as.character(edgeData$Sample2)))
-    nodeCount <- length(nodeNames)						#; print (paste(length(nodeNames),length(unique(edgeData$Sample1)),length(unique(edgeData$Sample2))))
+    nodeCount <- length(nodeNames)							#; print (paste(length(nodeNames),length(unique(edgeData$Sample1)),length(unique(edgeData$Sample2))))
     nodeData  <- data.frame(NodeName=nodeNames, Count=rep(1,nodeCount), NodeType=rep("sample",nodeCount))
     gr <- igraph::graph_from_data_frame(edgeData, directed=FALSE, vertices=nodeData)	#; print(paste("processClusters",minIdentity))
 
@@ -221,11 +222,11 @@ cluster.findClustersFromGraph <- function (ctx, sampleSetName, clusterSetName, m
     if (method == "allNeighbours") {
         clustersList <- cluster.findAllNeighbourClusters (gr, params)
     } else if (method %in% cluster.graphCommunityMethods) {
-        clustersList <- cluster.findGraphCommunities (gr, method, params)
+        clustersList <- cluster.findGraphCommunities (gr, method, params)		#; print(clustersList)
     }
     
     # Check if we actually found any clusters
-    clCount <- length(clustersList)						#; print(clCount)
+    clCount <- length(clustersList)							#; print(clCount)
     if (clCount == 0) {
         print(paste("No clusters of desired minimum side were found at identity threshold", minIdentity))
         return (NULL)
@@ -240,7 +241,7 @@ cluster.findClustersFromGraph <- function (ctx, sampleSetName, clusterSetName, m
         sampleLists[clIdx] <- paste(clSampleNames, collapse=",")
     }
     clustersData <- data.frame(Count=sampleCounts, SampleList=sampleLists, 
-                               stringsAsFactors=FALSE)				#; print(head(clustersData))
+                               stringsAsFactors=FALSE)					#; print(head(clustersData))
     clustersData
 }
 #
@@ -301,20 +302,25 @@ cluster.findAllNeighbourConnectedNodes <- function (gr, curr, nodes) {
 # Clustering Method: Community Analysis.
 #
 cluster.findGraphCommunities <- function (gr, method, params) {
-
+    weights <- igraph::E(gr)$weight
+    
+    resolution <- param.getParam ("cluster.resolution", params)		; print(paste("resolution", resolution))
     if (method == "louvain") {
-        resolution <- param.getParam ("cluster.resolution", params)
-        partition <- igraph::cluster_louvain(gr, weights=igraph::E(gr)$weight, resolution_parameter=resolution) 
+        partition <- igraph::cluster_louvain(gr, weights=weights, resolution=resolution) 
 
     } else if (method == "leiden") {
-        objFunction <- param.getParam ("cluster.objFunction", params)
-        resolution  <- param.getParam ("cluster.resolution", params)
-        beta        <- param.getParam ("cluster.beta", params)
-        partition <- igraph::cluster_leiden(gr, objective_function=objFunction, weights=igraph::E(gr)$weight, resolution_parameter=resolution, beta=beta) 
-
+        objFunction <- param.getParam ("cluster.objFunction", params)	; print(paste("objFunction", objFunction))
+        beta        <- param.getParam ("cluster.beta", params)		; print(paste("beta",beta))
+        partition <- igraph::cluster_leiden(gr, objective_function=objFunction, weights=weights, 
+                                            resolution=resolution, beta=beta)
     } else {
         stop (paste("Invalid method specified in parameter 'cluster.method':", method))
     }
+    print(names(partition))
+    print(partition$nb_clusters)
+    print(partition$vcount)
+    print(partition$membership)
+    #
     nodeComms <- partition$membership
     commIds <- sort(as.integer(unique(nodeComms)))
     sampleNames <- names(igraph::V(gr))

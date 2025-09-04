@@ -836,8 +836,8 @@ mapBarcodeFrequencies <- function (ctx, sampleSet,
 #'                        The "louvain" and "leiden" methods are preferred. They use an algorithm to identify clusters within a network that 
 #'                        are strongly connected to each other, and more weakly connected to other clusters.
 #' @param minClusterSize To avoid creating very small clusters, one can set a minimum cluster size. The default is 10 samples.
-#' @param resolution A tuning parameter for the "leiden" and "louvain" methods. 
-#'                        Values are between 0 and 1; lowering the value produces larger, "looser" clusters. Default is 1. 
+#' @param resolution A tuning parameter for the "leiden" and "louvain" methods.It is recommended to try out different values to find the desired level of aggregation.
+#'                   Values are between 0 and 1; lowering the value produces larger, "looser" clusters. Default is 0.85.
 #' @param objectiveFunction A parameter for the "leiden" method only. Possible values: "CPM" (Constant Potts Model) or "modularity". Default is "CPM".
 #' @param beta A tuning parameter for the "leiden" method only. Affects the randomness in the algorithm. Default is 0.01.
 #'
@@ -853,18 +853,20 @@ mapBarcodeFrequencies <- function (ctx, sampleSet,
 findClusters <- function (ctx, sampleSet, clusterSet,
                           minIdentity=1.0, impute=TRUE,
                           clusteringMethod="louvain", minClusterSize=10, 
-                          resolution = 1, objectiveFunction = "CPM", beta = 0.01) {
+                          resolution = 0.85, objectiveFunction = "CPM", beta = 0.01) {
   # Construct a list of arguments so we can use the params.getArgParameter utility function
-  args <- list(clusterSet=clusterSet, minIdentity=minIdentity, impute=impute, clusteringMethod=clusteringMethod, minClusterSize=minClusterSize)
+  args <- list(clusterSet=clusterSet, minIdentity=minIdentity, impute=impute, 
+               clusteringMethod=clusteringMethod, minClusterSize=minClusterSize,
+               resolution=resolution, objectiveFunction=objectiveFunction, beta=beta)
   p <- new.env ()
   p$cluster.clusterSet.name <- param.getArgParameter (args, "clusterSet")
   p$cluster.identity.min    <- param.getArgParameter (args, "minIdentity",      type="numeric", multiValue=TRUE, defaultValue=1.0)
   p$cluster.impute          <- param.getArgParameter (args, "impute",           type="logical", defaultValue=TRUE)
   p$cluster.minSize         <- param.getArgParameter (args, "minClusterSize",   type="integer", defaultValue=10)
   p$cluster.method          <- param.getArgParameter (args, "clusteringMethod", defaultValue="louvain", validValues=c("louvain","leiden","allNeighbours"))
-  p$cluster.resolution      <- param.getArgParameter (args, "resolution",       type="numeric", defaultValue=1.0)
+  p$cluster.resolution      <- param.getArgParameter (args, "resolution",       type="numeric", defaultValue=0.85)
   p$cluster.objFunction     <- param.getArgParameter (args, "objectiveFunction", defaultValue="CPM", validValues=c("CPM","modularity"))
-  p$cluster.beta            <- param.getArgParameter (args, "beta",             type="numeric", defaultValue=0.01)
+  p$cluster.beta            <- param.getArgParameter (args, "beta",             type="numeric", defaultValue=0.01)	;print(p)
   
   cluster.findClusters (ctx, sampleSetName=sampleSet, params=p)
 }

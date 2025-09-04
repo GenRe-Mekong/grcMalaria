@@ -235,9 +235,9 @@ map.createMapMaster <- function (userCtx, sampleSetName, mapType, params) {		#; 
     # Check the measures specified are valid; and if they are, ensure we have colour palettes for these measures, creating them if necessary.
     # For a given measure, all plots for this sample set use the same palette, otherwise the viewer will be confused when looking at multiple maps.
     #
-    userMeasureNames <- param.getParam ("analysis.measures", params)
     #
     if (mapType %in% c("drug", "mutation", "diversity")) {
+        userMeasureNames <- param.getParam ("analysis.measures", params)
         measureNames <- markerMap.resolveMeasureNames (userCtx, mapType, userMeasureNames)		#; print (measureNames)
         
     } else if (mapType=="alleleProp") {
