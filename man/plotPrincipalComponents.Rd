@@ -19,13 +19,13 @@ plotPrincipalComponents(
 \item{sampleSet}{The name of the sample set being used, which must have been previously created by selectSampleSet()}
 
 \item{type}{The type of method used for the principal component analysis
-"PCoA", performs multidimensional scaling on a distance matrix, in which each sample is a variable
-"nipals", "bpca" are methods applied to the set of genetic barcode genotypes (each barcode position is a variable).
+"PCoA", performs multidimensional scaling on a distance matrix, in which each sample is a variable.
+"MCA", performs Multiple Correspondence Analysis on an allele label matrix, in which each sample is a variable.
 The default is "PCoA"}
 
 \item{plots}{The list of attributes for which plots will be created.}
 
-\item{impute}{To use imputed or filtered data. The default is TRUE.}
+\item{impute}{To use imputed or filtered data. The default is TRUE. Ignored for MCA, which always uses imputed data.}
 
 \item{...}{Aesthetics: any of the following plot parameters,
 width: the width of the plot (numeric), default=15
@@ -43,13 +43,18 @@ axisTitleSize: specifies axis label font size (numeric), default=1}
 Principal component plots and .tab data files.
 }
 \description{
-Principal Component Analysis (PCA) or Principal Coordinate Analysis (PCoA) are methods of reducing complexity of the data (in this case distances of 101-SNP genetic barcodes) down to two dimensions, while preserving as much information contained in the original data as possible.
-This was done by creating principal components that explain most of the observed variance in the dataset.
-PCoA is the default method in the grcMalaria but other PCA methods are available.
+Principal Component Analysis (PCA), Principal Coordinate Analysis (PCoA) and Multiple Correspondence Analysis (MCA) are methods of reducing complexity of the data
+(in this case, a matrix of genetic barcodes genotyped across a number of variants) down to fewer dimensions, while preserving as much information contained 
+in the original data as possible. This is done by deriving mathematically a set of principal components that explain most of the observed variance in the dataset.
+grcMalaria does not implement a "true PCA" methods, since this would require assigning numeric scalar values to alleles, which is problematic for variant that 
+have more than two alleles (for example, GenRe-Mekong microhaplotype barcode data). Instead, we implement the following:
+- PCoA (default method), which analyzes a pairwise distance matrix between all samples, computed from the barcode allele data;
+- MCA which analyzes the barcode allele data, treating them as categorical labels; in this case, the data must contain exactly one allele per sample at 
+  each variant (hence, MCA uses the imputed dataset).
 One plot is created for each specified graphical attribute in the parameter 'plots', in which the samples are coloured according to user input.
-Graphical display of attributes needs to be specified before using this function.
-The PC (Principal Components) are arranged in descending order of explained variance, with PC1 axis showing the largest variation and PC2 axis showing the second the largest variation and so on.
-Samples that are close to each other means they are similar to each other. Well separated clusters means there are differences between samples.
+Graphical display of attributes needs to be specified before using this function (see function loadGraphicAttributes).
+The PCs (Principal Components) are arranged in descending order of explained variance, with PC1 axis showing the largest variation and PC2 axis showing the second 
+largest variation and so on.
 }
 \examples{
 \dontrun{

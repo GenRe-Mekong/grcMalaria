@@ -7,9 +7,6 @@ phylo.pcCount <- 10
 #
 # Supported methods:
 #     pca/PCoA		Analyzes a distance matrix
-#     pca/nipals	Analyzes each barcode variant as a variable
-#     pca/bpca		Analyzes each barcode variant as a variable
-#     pca/ppca		Analyzes each barcode variant as a variable
 ################################################################################
 #
 pca.execute <- function(userCtx, sampleSetName, method, params) {
@@ -22,14 +19,16 @@ pca.execute <- function(userCtx, sampleSetName, method, params) {
     dataFolder      <- getOutFolder(config, sampleSetName, c(method, "data"))
     plotsRootFolder <- getOutFolder(config, sampleSetName, c(method, "plots"))
     #
-    # Get the metadata, distance and genotypes
+    # Get the metadata, distance and genotypes.
+    # For MCA we have to use imputed data to remove hets and missing
     #
-    useImputed <- param.getParam ("phylo.impute", params)	#; print(useImputed)
-    datasetName <- ifelse (useImputed, "imputed", "filtered")
+    if (method == "MCA") {
+        datasetName <- "imputed"
+    } else {
+        useImputed <- param.getParam ("impute", params)				#; print(useImputed)
+        datasetName <- ifelse (useImputed, "imputed", "filtered")
+    }
     sampleMeta <- context.getMeta (ctx, datasetName) 
-    dataset <- ctx[[datasetName]]
-    genosData <- dataset$genos
-    distData  <- context.getDistanceMatrix (ctx, sampleSetName, useImputed)
     #
     # Compute the Principal components
     #
@@ -39,19 +38,22 @@ pca.execute <- function(userCtx, sampleSetName, method, params) {
     pcScores <- NULL
     varExplained <- NULL
     if (method == "PCoA") {
+        distData  <- context.getDistanceMatrix (ctx, sampleSetName, useImputed)
         pcaResults <- stats::cmdscale(as.matrix(distData), eig=TRUE, k=phylo.pcCount)
         pcScores <- pcaResults$points
         varExplained <- pcaResults$eig / sum(abs(pcaResults$eig))
-    } else  {
-        genos <- as.matrix(genosData)
-        pcaResults <- NULL
-        if (method == "bpca") {
-            pcaResults <- pcaMethods::pca(genos, method=method, center=TRUE, scale="uv", nPcs=phylo.pcCount, maxSteps=500)
-        } else {
-            pcaResults <- pcaMethods::pca(genos, method=method, center=TRUE, scale="uv", nPcs=phylo.pcCount)
-        }
-        pcScores <- pcaResults@scores
-        varExplained <- pcaResults@R2
+
+    } else if (method == "MCA") {
+        catData <- ctx$rootCtx$imputed$barcodeGenoTable
+        catData <- catData[sampleNames,]
+        catData[] <- lapply(catData, as.factor)
+        mcaResult <- FactoMineR::MCA(catData, ncp=10, graph=FALSE)
+        pcScores <- mcaResult$ind$coord
+        varExplained <- mcaResult$eig[,"percentage of variance"]
+        
+        varCoords <- data.frame(Allele=rownames(mcaResult$var$coord), mcaResult$var$coord)
+        varCoordsFilename  <- paste(dataFolder, paste0(pca.getDataFileName("-variantCoords", sampleSetName, method),".tab"), sep="/")
+        utils::write.table(varCoords, file=varCoordsFilename, sep="\t", quote=FALSE, row.names=FALSE)
     }
     #
     # Write out the data to file
@@ -116,7 +118,6 @@ pca.getDataFileName <- function(suffix, sampleSetName, method) {
     fn <- paste("pca", suffix, "-", sampleSetName, "-", method, sep="")
     fn
 }
-
 
 ###############################################################################
 # Principal Component plotting

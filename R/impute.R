@@ -231,12 +231,13 @@ impute.buildBarcodeGenotypeTable <- function (barcodeGenoData) {
         for (sIdx in 1:sampleCount) {
             sGenos[sIdx] = names(sampleAlleles[[sIdx]])
         }
-        alleleCounts <- sort(table(sGenos), decreasing=TRUE)	#; print(alleleCounts)
-        alleles <- names(alleleCounts)
-        alleleIndexes <- 1:length(alleles)
-        names(alleleIndexes) <- alleles
-        sGenoIndexes <- alleleIndexes[sGenos]
-        barcodeGenoTable <- cbind(barcodeGenoTable, sGenoIndexes)
+        #alleleCounts <- sort(table(sGenos), decreasing=TRUE)	#; print(alleleCounts)
+        #alleles <- names(alleleCounts)
+        #alleleIndexes <- 1:length(alleles)
+        #names(alleleIndexes) <- alleles
+        #sGenoIndexes <- alleleIndexes[sGenos]
+        #barcodeGenoTable <- cbind(barcodeGenoTable, sGenoIndexes)
+        barcodeGenoTable <- cbind(barcodeGenoTable, sGenos)
     }
     rownames(barcodeGenoTable) <- sampleNames
     colnames(barcodeGenoTable) <- columnNames
