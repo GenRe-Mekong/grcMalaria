@@ -25,7 +25,7 @@ pca.execute <- function(userCtx, sampleSetName, method, params) {
     if (method == "MCA") {
         datasetName <- "imputed"
     } else {
-        useImputed <- param.getParam ("impute", params)				#; print(useImputed)
+        useImputed <- param.getParam ("phylo.impute", params)				#; print(useImputed)
         datasetName <- ifelse (useImputed, "imputed", "filtered")
     }
     sampleMeta <- context.getMeta (ctx, datasetName) 
