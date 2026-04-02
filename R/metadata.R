@@ -106,11 +106,6 @@ meta.getMutationPrevalence <- function (ctx, sampleMeta, mutationNames, params) 
 	columnName <- feat[mutName, "ColumnName"]		#; print(columnName)
         mutAllele <- feat[mutName, "Alternative"]		#; print(mutAllele)
         #
-        #mutData <- meta.getPositionData (config, mutName)
-        #if (is.null(mutData)) {
-        #    stop(paste("Invalid mutation specified:",mutName))
-        #}
-        #
         sampleNames <- rownames(sampleMeta)			#; print(length(sampleNames))
         columnGenos <- ctx$rootCtx$alleleGenoData$columnGenoData[[columnName]]
         sampleGenos <- columnGenos$sampleGenotypes[sampleNames]
@@ -159,13 +154,12 @@ meta.select <- function(sampleMeta, selectDefs) {
     sampleMeta
 }
 #
-# Select sample metadata within a given time period (start and end date inclusive)
+# #####################################################################################
+# Sample Filtering by Date
+# #####################################################################################
 #
-meta.defaultDateFormat <- "%d/%m/%Y"
-meta.naDate <- "01/01/1000"		# Date value to use instead of NA or "-"
-#
-meta.filterByDate <- function(sampleMeta, startDate, endDate, format=meta.defaultDateFormat) {
-    metaDates <- meta.getSampleDates (sampleMeta, format)	#; print(head(metaDates))
+meta.filterByDate <- function(sampleMeta, startDate, endDate) {
+    metaDates <- sampleMeta$DeterminedDate		  	#; print(head(metaDates))
     selectIdx <- !is.na(metaDates)
     if (!is.null(startDate)) {
         selectIdx <- selectIdx & (metaDates>=startDate)
@@ -178,40 +172,4 @@ meta.filterByDate <- function(sampleMeta, startDate, endDate, format=meta.defaul
          filterMeta <- sampleMeta[selectIdx,]
     }								#; print(nrow(filterMeta))
     filterMeta
-}
-#
-#
-#
-meta.getSampleDates <- function (sampleMeta, format=meta.defaultDateFormat) {
-    .naDate <- 
-    sampleCount <- nrow(sampleMeta)
-    if ("CollectionDate" %in% colnames(sampleMeta)) {
-        metaDatesIn <- as.character(sampleMeta$CollectionDate)
-    } else {
-        #message("Your GRC data does not contain the CollectionDate Field. Using the Year field instead- see the documentation.")
-        metaDatesIn <- rep("-", sampleCount)
-    }									#; print(metaDatesIn[1:500])
-    #
-    # If date is missing, use the year which shoul be there
-    #
-    missingDateIndexes <- which (metaDatesIn == "-")			#; print(missingDateIndexes)
-    if (length(missingDateIndexes) > 0) {
-        years <- suppressWarnings(as.integer(sampleMeta$Year))		#; print(years[1:500])
-        yearDates <- paste0("31/12/", years)				#; print(yearDates[1:500])
-        for (mdIdx in missingDateIndexes) {
-            if (is.na(years[mdIdx])) {
-                #
-                # Silly workaround. Placing a "-" can cause as.Date() errors if it is in the first element of the vector!!!
-                # So we put a valid but improbably date instead. Not ideal, but avoids errors
-                #
-                #metaDatesIn[mdIdx] <- "-" 
-                metaDatesIn[mdIdx] <- meta.naDate 
-            } else {
-                metaDatesIn[mdIdx] <- yearDates[mdIdx]
-            }
-        }								#; print(metaDatesIn[1:500])
-    }
-    metaDates <- as.Date(metaDatesIn, tryFormats=format, optional=TRUE)	#; print(metaDates[1:500])
-    metaDates[which(metaDates==meta.naDate)] <- NA
-    metaDates
 }

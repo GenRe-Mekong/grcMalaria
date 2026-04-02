@@ -82,6 +82,10 @@ grcData.load <- function (grcDataFile, species, version, grcDataSheet) {
     grcSampleData <- grcData.checkColumns (grcSampleData, c("SampleId",grcFeatures$ColumnName), grcDataSheet)
     rownames(grcSampleData) <- grcSampleData$SampleId	
     #
+    # Ensure we have a column named CollectionDate that has a valid cate for each sample, determined from Year and Month if necessary
+    #
+    grcSampleData <- grcData.determineSampleDates(grcSampleData)
+    #
     # Process the features to create a configuation that works for this GRC
     #
     grcConfig <- grcData.buildGrcConfig (species, version, grcFeatures)
@@ -135,7 +139,7 @@ grcData.checkColumns <- function (data, columnNames, sheetName, trim=FALSE) {
     }
     if (length(missing) > 0) {
         missFields <- paste(missing, sep=",")
-        stop(paste("Missing column(s) in GRC sheet '",sheetName,"': ",missFields))
+        stop(paste0("Missing column(s) in GRC sheet '",sheetName,"': ",missFields))
     }
     data
 }
@@ -154,6 +158,79 @@ grcData.getGrcPropertyValue <- function (propName, props, expected=NULL) {
 }
 #
 # #####################################################################################
+# Sample CollectionDate processing.
+# Ensure we have a column named DeterminedDate that has a valid date for each sample, determined from Year and Month if necessary.
+# 
+# GRC Sample Date rules:
+# - For any sample, CollectionDate may be missing, either because it is missing for the sample, or because the CollectionDate column is missing (Public Release)
+# - When present, CollectionDate must be a String in format "dd/mm/yyyy". This must be done in the Metadata file.
+# - The Year value is mandatory; if the CollectionDate is provided, they must be consistent. This must be done in the Metadata file.
+# - The Month value is optional; if the CollectionDate is provided, they must be consistent. This must be done in the Metadata file.
+# - As for other columns, missing value is "-"
+#
+# Selection of samples by date intervals will be based on a metadata column called DeterminedDate, derived from Year, Month and CollectionDate
+#
+# #####################################################################################
+#
+grcData.determineSampleDates <- function(grcSampleData) {
+    sampleNames <- grcSampleData$SampleId
+    sampleCount <- nrow(grcSampleData)
+    #
+    # Get the input columns from the metadata
+    #    
+    if ("CollectionDate" %in% colnames(grcSampleData)) {
+        collDate <- as.character(grcSampleData$CollectionDate)
+    } else {
+        collDate <- rep("-", sampleCount)
+    }
+    if ("Month" %in% colnames(grcSampleData)) {
+        collMonth <- suppressWarnings(as.integer(grcSampleData$Month))
+    } else {
+        collMonth <- rep(NA_integer_, sampleCount)
+    }
+    collYear <- suppressWarnings(as.integer(grcSampleData$Year))
+    badYearIdx <- which(is.na(collYear))
+    if (length(badYearIdx) > 0) {
+        badYearSampleIds <- sampleNames[badYearIdx]
+        warning(paste("Invalid 'Year' value found in the following sample(s):", paste(badYearSampleIds, collapse=",")))
+    }
+    #
+    # Go through each sample, determining the dates
+    #
+    detDates <- c()
+    for (sIdx in 1:sampleCount) {
+        if (collDate[sIdx] != "-") {
+            # If the CollectionDate is missing, work one out from Year and Month
+            year <- collYear[sIdx]
+            month <- collMonth[sIdx]
+            if (is.na(month)) {
+                month <- 7
+                day <- 1
+            } else {
+                day <- 15
+            }
+            cd <- lubridate::make_date(year=year, month=month, day=day)
+        } else {
+            # Is the CollectionDate date in the right format?
+            cd <- as.Date(sIdx, "%d/%m/%Y")
+            if (is.na(cd)) {
+                warning(paste("Invalid 'CollectionDate' value found:", sampleNames[sIdx]))
+            } else {
+                if (lubridate::year(cd) != collYear[sIdx]) {
+                    warning(paste("Inconsistency between 'CollectionDate' and 'Year' in sample", sampleNames[sIdx]))
+                }
+                if (lubridate::month(cd) != collMonth[sIdx]) {
+                    warning(paste("Inconsistency between 'CollectionDate' and 'Month' in sample", sampleNames[sIdx]))
+                }
+            }
+        }
+        detDates <- c(detDates, cd)
+    }
+    grcSampleData$DeterminedDate <- detDates
+    grcSampleData
+}
+#
+# #####################################################################################
 # GRC-specific setup configurations
 # #####################################################################################
 grcData.buildGrcConfig <- function (species, version, grcFeatures) {
@@ -169,7 +246,8 @@ grcData.buildGrcConfig <- function (species, version, grcFeatures) {
     #
     # Drug Resistant Positions
     #
-    config$drugLocusFeatures <- grcFeatures[which(grcFeatures$Class == "PhenotypeAssociatedLocus"),]	#; print(config$drugLocusFeatures)
+    phenoFeatureClasses <- c("PhenotypeAssociatedLocus", "PhenotypeAssociatedVariant")
+    config$drugLocusFeatures <- grcFeatures[which(grcFeatures$Class %in% phenoFeatureClasses),]	#; print(config$drugLocusFeatures)
     #
     # Drug Resistant Mutations
     #
