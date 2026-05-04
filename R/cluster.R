@@ -15,8 +15,7 @@ cluster.findClusters <- function (userCtx, sampleSetName, params) {
     clusterSetName    <- param.getParam ("cluster.clusterSet.name", params)	#; print(clusterSetName)
     minIdentityLevels <- param.getParam ("cluster.identity.min", params) 	#; print(minIdentityLevels)
     useImputation     <- param.getParam ("cluster.impute", params)		#; print(useImputation)
-    method            <- param.getParam ("cluster.method", params)		#; print(method)
-    print(paste("Clustering Method:",method))
+    method            <- param.getParam ("cluster.method", params)		#; print(paste("Clustering Method:",method))
     
     dataRootFolder  <- getOutFolder(config, sampleSetName, c("cluster", "data", clusterSetName), create=FALSE)
     if (file.exists(dataRootFolder)) {
@@ -69,6 +68,7 @@ cluster.findClusters <- function (userCtx, sampleSetName, params) {
         clusterSetInfo <- list(clusterSetName=clusterSetName,
                                sampleSetName=sampleSetName,
                                minIdentity=minIdentity,
+                               useImputation=useImputation,
                                clusters=clustersData,	# dataframe
                                members=memberData, 	# dataframe
                                stats=statsData)		# dataframe
@@ -111,7 +111,6 @@ cluster.getMemberData <- function(clustersData) {
     rownames(clusterMembers) <- sIds
     clusterMembers
 }
-
 #
 #
 #
@@ -304,22 +303,18 @@ cluster.findAllNeighbourConnectedNodes <- function (gr, curr, nodes) {
 cluster.findGraphCommunities <- function (gr, method, params) {
     weights <- igraph::E(gr)$weight
     
-    resolution <- param.getParam ("cluster.resolution", params)		; print(paste("resolution", resolution))
+    resolution <- param.getParam ("cluster.resolution", params)		#; print(paste("resolution", resolution))
     if (method == "louvain") {
         partition <- igraph::cluster_louvain(gr, weights=weights, resolution=resolution) 
 
     } else if (method == "leiden") {
-        objFunction <- param.getParam ("cluster.objFunction", params)	; print(paste("objFunction", objFunction))
-        beta        <- param.getParam ("cluster.beta", params)		; print(paste("beta",beta))
+        objFunction <- param.getParam ("cluster.objFunction", params)	#; print(paste("objFunction", objFunction))
+        beta        <- param.getParam ("cluster.beta", params)		#; print(paste("beta",beta))
         partition <- igraph::cluster_leiden(gr, objective_function=objFunction, weights=weights, 
                                             resolution=resolution, beta=beta)
     } else {
         stop (paste("Invalid method specified in parameter 'cluster.method':", method))
-    }
-    print(names(partition))
-    print(partition$nb_clusters)
-    print(partition$vcount)
-    print(partition$membership)
+    }	#; print(names(partition)); print(partition$nb_clusters); print(partition$vcount); print(partition$membership)
     #
     nodeComms <- partition$membership
     commIds <- sort(as.integer(unique(nodeComms)))

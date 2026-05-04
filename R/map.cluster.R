@@ -10,7 +10,7 @@ clusterMap.executeMap <- function (map) {
 
     mapMaster   <- map$master
     mapType     <- mapMaster$type
-    measureName <- map$measureName			#; print(measureName)
+    measureName <- map$measureName						#; print(measureName)
     interval    <- map$interval
     #
     datasetName <- map$datasetName
@@ -146,33 +146,42 @@ clusterMap.getClusterSetsPalettes <- function (ctx, clusterSets) {
 #
 #
 clusterMap.getAggUnitClusterCountData <- function(clusterSet, sampleMeta, aggLevel, aggUnitData, params) {
+    #
+    # clusterData is a dataframe with three columns: ClusterId, Count (of samples), SampleList (comma-separated lists of sample ids)
+    #
     clusterData <- clusterSet$clusters							#; print(head(clusterData))
+    #
+    # memberData is a dataframe with three columns: Sample, ClusterId. It is in essence a derivative of the clusterData
+    #
     memberData  <- clusterSet$members							#; print(nrow(memberData)); print(head(memberData))
     #
     clusterData <- clusterData[order(clusterData$Cluster),]				#; print(nrow(clusterData))
     clusterIds <- as.character(clusterData$Cluster)					#; print(clusterIds)
-    memberData <- memberData[rownames(sampleMeta),]
-    memberData <- memberData[which(memberData$Cluster %in% clusterIds),]
     #
-    # At this point, it is *possible* that some members of the clusters are *not* in the metadaya (e.g. if imputation is/is not used in cluster selection)
+    # It is *possible* that some members of the clusters are *not* in the metadata (e.g. if imputation is used in cluster selection or not)
     #
+    sampleNames <- rownames(sampleMeta)
+    memberData <- memberData[which(memberData$Sample %in% sampleNames),]		#; print(length(sampleNames))
     memberIds      <- memberData$Sample							#; print(length(memberIds))
     memberClusters <- memberData$Cluster						#; print(memberClusters)
-
+    #
     # Assign cluster Ids to the sample metadata
-    sampleNames <- rownames(sampleMeta)							#; print(length(sampleNames))
+    #
     sampleCluster <- rep("-", length(sampleNames))
     names(sampleCluster) <- sampleNames
     sampleCluster[memberIds] <- memberClusters
     sampleMeta$Cluster <- sampleCluster
-    
+    #
     # Get all aggregation unit ids
+    #
     aggUnitGids <- rownames(aggUnitData)						#; print(aggUnitGids); print(nrow(sampleMeta))
-    
+    #
     # Create aggregation index for each sample (the id of the aggregation unit where the sample originates)
+    #
     aggIndex <- map.getAggregationUnitIds (aggLevel, sampleMeta)
-
+    #
     # Get the data for all aggregation units
+    #
     countData <- NULL
     for (aIdx in 1:length(aggUnitGids)) {
         # Get the sample data to be aggregated for this unit
@@ -202,7 +211,7 @@ clusterMap.getAggUnitClusterCountData <- function(clusterSet, sampleMeta, aggLev
 # Maps of connections between Haplotype Sharing sites plotting 
 ################################################################################
 #
-clusterMap.addConnections <- function (mapPlot, baseMapInfo, clusterId, clusterShareData, clusterPalette, params) { #; print(clusterId) #; print(clusterShareData)
+clusterMap.addConnections <- function (mapPlot, baseMapInfo, clusterId, clusterShareData, clusterPalette, params) { #; print(clusterId) ; print(clusterShareData)
     #
     # Work out the values to display for every marker (the fractional prevalence)
     #

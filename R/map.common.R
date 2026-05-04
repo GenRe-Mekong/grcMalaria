@@ -38,11 +38,11 @@ map.execute <- function(userCtx, sampleSetName, mapType, params) {		#;print(mapT
         #
         # Add the "look and feel" elements to the map plot
         #
-        mapPlot <- mapPlot + mapSpec$master$theme				#; plot(mapPlot)
+        mapPlot <- mapPlot + mapSpec$master$theme			#; plot(mapPlot)
         #
         # Deal with the legend 
         #
-        plotInfo <- map.processLegend (mapPlot, mapSpec, params)			#; plot(mapPlot)
+        plotInfo <- map.processLegend (mapPlot, mapSpec, params)	#; plot(mapPlot)
         if (!is.null(plotInfo$legend)) {
             legFile <- paste0(mapSpec$plotFile, ".legend.png")
             legend <- plotInfo$legend
@@ -156,7 +156,7 @@ map.createMapSpecs <- function(userCtx, sampleSetName, mapType, params) {		#;pri
 		        aggUnitData <- markerMap.estimateMeasures (mapCtx, datasetName, aggLevel, aggUnitData, sampleSetName, 
 		                                                   mapType, measureNames, params, mapMaster$dataFolder)	#; print(aggUnitData)
 		    }
-                } 
+                }
                 if (mapType=="connect") {
 		    aggUnitPairData <- connectMap.estimateMeasures (mapCtx, datasetName, sampleSetName, aggLevel, aggUnitData, 
 		    	                                            mapType, measureNames, params, mapMaster$dataFolder)	#; print(aggUnitPairData)
@@ -208,8 +208,17 @@ map.createMapMaster <- function (userCtx, sampleSetName, mapType, params) {		#; 
         # Diversity plots are done one at a time, so param analysis.measures contains a single value
         measure <- param.getParam ("analysis.measures", params)
         mapMaster$datasetNames <- diversity.getDatasetForMeasure (measure)
-    } else if (mapType  %in% c("connect", "barcodeFrequency", "clusterSharing", "clusterPrevalence")) {
+    } else if (mapType  %in% c("connect", "barcodeFrequency")) {
         mapMaster$datasetNames <- "imputed"
+    } else if (mapType  %in% c("clusterSharing", "clusterPrevalence")) {
+        clusterSetName  <- param.getParam ("cluster.clusterSet.name", params)		#; print(clusterSetName)
+        firstClusterSet <- sampleSet$clusters[[clusterSetName]][[1]]
+        useImputation <- firstClusterSet$useImputation 					#; print(paste("UseImputation:", useImputation)
+        if (useImputation) {
+            mapMaster$datasetNames <- "imputed"
+        } else {
+            mapMaster$datasetNames <- "filtered"
+        }
     } else if (mapType == "sampleCount") {
         mapMaster$datasetNames <- c("unfiltered","filtered")
     } else {

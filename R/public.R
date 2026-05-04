@@ -866,7 +866,7 @@ findClusters <- function (ctx, sampleSet, clusterSet,
   p$cluster.method          <- param.getArgParameter (args, "clusteringMethod", defaultValue="louvain", validValues=c("louvain","leiden","allNeighbours"))
   p$cluster.resolution      <- param.getArgParameter (args, "resolution",       type="numeric", defaultValue=0.85)
   p$cluster.objFunction     <- param.getArgParameter (args, "objectiveFunction", defaultValue="CPM", validValues=c("CPM","modularity"))
-  p$cluster.beta            <- param.getArgParameter (args, "beta",             type="numeric", defaultValue=0.01)	;print(p)
+  p$cluster.beta            <- param.getArgParameter (args, "beta",             type="numeric", defaultValue=0.01)	#;print(p)
   
   cluster.findClusters (ctx, sampleSetName=sampleSet, params=p)
 }
