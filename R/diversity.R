@@ -28,7 +28,7 @@ diversity.getDatasetForMeasure <- function(measure) {
 diversity.estimateDiversityMeasures <- function (ctx, sampleNames, measureNames) {
     result <- c()
     for (mIdx in 1:length(measureNames)) {
-        measureName <- measureNames[mIdx]			;print(paste("diversity.estimateDiversityMeasures", measureName))
+        measureName <- measureNames[mIdx]			#;print(paste("diversity.estimateDiversityMeasures", measureName))
         #
         # maxBarcodeFreq - this is the proportion of samples thaty carry the most common barcode (imputed)
         #
